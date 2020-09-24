@@ -17,7 +17,8 @@ fastp -i $workdir/data/LYJA_1.fq.gz \
 ## 第三步：Trinity 组装
 ```
 workdir=/share/home/stu_marui/insect
-Trinity --seqType fq --max_memory 100G --no_salmon \                                            ##由于Trinity版本问题，有时salmon与之不兼容，所以添加--no_salmon；
+## 由于Trinity版本问题，有时salmon与之不兼容，所以添加--no_salmon；
+Trinity --seqType fq --max_memory 100G --no_salmon \                                            
   --left $workdir/DAYCA_result/clean/DAYCA_1_clean.fq.gz \
   --right $workdir/DAYCA_result/clean/DAYCA_2_clean.fq.gz \
   --CPU 20 \
