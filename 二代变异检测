@@ -1,1 +1,81 @@
+workdir=/share/home/stu_marui/feisha.test
+index=/share/home/stu_marui/public/reference/index/bwa/hg19
+reference=/share/home/stu_marui/public/reference/genome/hg19
 
+#01_map and sam转bam
+bwa mem -M -R '@RG\tID:group1\tPL:illumina\tSM:A\tLB:lib\tPU:unit1' \
+$index/hg19 $workdir/data/A_1.fastq $workdir/data/A_2.fastq \
+| samtools view -b > $workdir/result/A.bam
+
+#02_sort
+samtools sort -O BAM $workdir/result/A.bam > $workdir/result/A.sorted.bam
+
+#03_index
+samtools index $workdir/result/A.sorted.bam
+
+#04_dedup
+gatk MarkDuplicates \
+-I $workdir/result/A.sorted.bam \
+-O $workdir/result/A.dedup.bam \
+-M $workdir/result/A.mark_dup_metrics.txt
+
+#05_index
+samtools index $workdir/result/A.dedup.bam
+
+#06_index 
+gatk CreateSequenceDictionary -R $reference/hg19.fa   #create hg19.fa.dict
+samtools index $reference/hg19.fa   #create hg19.fa.fai
+
+
+#07_Call_SNP_Indel
+gatk HaplotypeCaller \
+-R $reference/hg19.fa \    #调用 fa.dict 和 fa.fai 两个索引
+-I $workdir/result/A.dedup.bam \
+-O $workdir/result/A.raw.gvcf \
+-ERC GVCF \
+-ploidy 2
+
+#combine gvcf from all the samples and genotype
+#gatk CombineGVCFs \
+#-R $reference/hg19.fa \
+#-O $workdir/result/combine_variant.raw.gvcf \
+#--variant $workdir/result/A.raw.gvcf \
+#--variant $workdir/result/B.raw.gvcf
+
+#08_GenotypeGVCFs
+gatk GenotypeGVCFs \
+-R $reference/hg19.fa \
+-O $workdir/result/variant_A.raw.vcf \
+--variant $workdir/result/A.raw.gvcf
+
+#########Obtaiining SNP and filter
+#09_SNP
+gatk SelectVariants \
+-R $reference/hg19.fa \
+-O $workdir/result/SNP_A.raw.vcf \
+--variant $workdir/result/variant_A.raw.vcf \
+--select-type-to-include SNP
+
+#10_filter
+gatk VariantFiltration \
+-R $reference/hg19.fa \
+-O $workdir/result/SNP_A_filtered.vcf \
+--variant $workdir/result/SNP_A.raw.vcf \
+--filter-name "snp_filter" \
+--filter-expression "QD < 2.0 || FS > 60.0 || SOR > 3.0 || MQ < 40.0 || MQRankSum < -12.5"
+
+##########Obtaiining INDEL and filter
+#11_INDEL
+gatk SelectVariants \
+-R $reference/hg19.fa \
+-O $workdir/result/INDEL_A.raw.vcf \
+--variant $workdir/result/variant_A.raw.vcf \
+--select-type-to-include INDEL
+
+#12_filter
+gatk VariantFiltration \
+-R $reference/hg19.fa \
+-O $workdir/result/INDEL_A_filtered.vcf \
+--variant $workdir/result/INDEL_A.raw.vcf \
+--filter-name "indel_filter" \
+--filter-expression "QD < 2.0 || FS > 200.0 || SOR > 10.0 || MQ < 40.0 || MQRankSum < -12.5"
