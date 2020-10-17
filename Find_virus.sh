@@ -68,7 +68,7 @@ python $workdir/workplace/tidy_blast_result.py $workdir/CXA_result/CXA_trinity2v
 # Author       : _
 # CreateTime   : 2020-09-11 15:02:20
 # LastEditTime : 2020-09-11 16:58:02
-# LastEditors  : Keliang_Lyu
+# LastEditors  : _
 # Description  : Tidy blast result and add annotation.
 # ====================================
 import argparse
